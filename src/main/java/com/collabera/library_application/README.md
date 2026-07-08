@@ -1,0 +1,630 @@
+# Library Management REST API
+
+## Overview
+
+This project implements a RESTful API for a simple library management system.
+
+The API allows users to:
+
+* Register borrowers
+* Register books
+* View available books
+* Borrow books on behalf of borrowers
+* Return borrowed books
+
+The application is built using:
+
+* Java 17
+* Spring Boot 3.5
+* Spring Data JPA
+* PostgreSQL
+* Docker Compose
+
+---
+
+# Technology Stack
+
+| Technology        | Purpose                             |
+| ----------------- | ----------------------------------- |
+| Java 17           | Programming language                |
+| Spring Boot       | REST API framework                  |
+| Spring Data JPA   | Database interaction                |
+| PostgreSQL        | Relational database                 |
+| Maven             | Dependency management               |
+| Docker Compose    | Containerized application execution |
+| OpenAPI / Swagger | API documentation                   |
+
+---
+
+# Database Choice
+
+## PostgreSQL
+
+PostgreSQL was selected because:
+
+* The system has clearly defined relationships between entities:
+
+    * Borrower
+    * Book
+    * BookBorrow
+* Relational databases provide strong consistency for borrowing operations.
+* Foreign key constraints ensure data integrity.
+* Unique constraints can enforce ISBN rules.
+* PostgreSQL is widely used in production environments and has excellent Spring Boot support.
+
+---
+
+# Project Structure
+
+```
+library-application
+|
+├── src/main/java
+│   └── com.collabera.library_application
+│
+├── src/main/resources
+│   ├── application.properties
+│   ├── application-dev.properties
+│   └── application-prod.properties
+│
+├── Dockerfile
+├── docker-compose.yml
+└── pom.xml
+```
+
+---
+
+# Running the Application
+
+## Prerequisites
+
+Install:
+
+* Java 17
+* Maven
+* Docker Desktop
+
+---
+
+# Option 1: Run Locally
+
+## Configure Development Database
+
+The development profile uses a local PostgreSQL instance.
+
+Example:
+
+`application-dev.properties`
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5433/library_db
+spring.datasource.username=postgres
+spring.datasource.password=
+
+spring.jpa.hibernate.ddl-auto=update
+```
+
+Start the application:
+
+```bash
+mvn spring-boot:run
+```
+
+The API will be available at:
+
+```
+http://localhost:8080
+```
+
+---
+
+# Option 2: Run with Docker Compose
+
+The Docker setup starts:
+
+* PostgreSQL database
+* Spring Boot application
+
+Build and start:
+
+```bash
+mvn clean package
+
+docker compose up --build
+```
+
+The API will be available at:
+
+```
+http://localhost:8080
+```
+
+Swagger UI:
+
+```
+http://localhost:8080/swagger-ui/index.html
+```
+
+Stop containers:
+
+```bash
+docker compose down
+```
+
+Remove database volume:
+
+```bash
+docker compose down -v
+```
+
+---
+
+# Environment Configuration
+
+The application supports multiple environments using Spring Profiles.
+
+Available profiles:
+
+| Profile | Purpose                            |
+| ------- | ---------------------------------- |
+| dev     | Local development                  |
+| prod    | Docker/production-like environment |
+
+Activate a profile:
+
+```bash
+SPRING_PROFILES_ACTIVE=prod
+```
+
+Production database configuration is provided using environment variables:
+
+```
+DB_URL
+DB_USERNAME
+DB_PASSWORD
+```
+
+Example:
+
+```
+DB_URL=jdbc:postgresql://postgres:5432/library_db
+DB_USERNAME=postgres
+DB_PASSWORD=postgres123
+```
+
+---
+
+# API Endpoints
+
+## Borrower APIs
+
+### Register Borrower
+
+```
+POST /api/library/borrowers
+```
+
+Request:
+
+```json
+{
+  "name": "John Smith",
+  "email": "john@example.com"
+}
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "name": "John Smith",
+  "email": "john@example.com"
+}
+```
+
+---
+
+# Book APIs
+
+## Register Book
+
+```
+POST /api/library/books
+```
+
+Request:
+
+```json
+{
+  "isbn": "9780134685991",
+  "title": "Effective Java",
+  "author": "Joshua Bloch"
+}
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "isbn": "9780134685991",
+  "title": "Effective Java",
+  "author": "Joshua Bloch"
+}
+```
+
+---
+
+## Get All Books
+
+```
+GET /api/library/books
+```
+
+Response:
+
+```json
+[
+  {
+    "id": 1,
+    "isbn": "9780134685991",
+    "title": "Effective Java",
+    "author": "Joshua Bloch"
+  }
+]
+```
+
+---
+
+# Book Borrow APIs
+
+## Borrow a Book
+
+```
+POST /api/library/books/borrow
+```
+
+Request:
+
+```json
+{
+  "bookId": 1,
+  "borrowerId": 2
+}
+```
+
+Rules:
+
+* A book copy can only be borrowed by one borrower at a time.
+* Multiple copies with the same ISBN are supported.
+
+---
+
+## Return a Book
+
+```
+POST /api/library/books/return
+```
+
+Example:
+
+```json
+{
+    "bookId":1
+}
+```
+
+---
+
+# Validation Rules
+
+## Borrower
+
+* Name is mandatory.
+* Email is mandatory.
+* Email must be unique.
+
+## Book
+
+* Title is mandatory.
+* Author is mandatory.
+* ISBN is mandatory.
+* Multiple books can have the same ISBN.
+* Different ISBN values represent different book editions.
+
+---
+
+# Data Model
+
+## Borrower
+
+```
+Borrower
+---------
+id
+name
+email
+```
+
+---
+
+## Book
+
+```
+Book
+---------
+id
+isbn
+title
+author
+```
+
+---
+
+## BookBorrow
+
+```
+BookBorrow
+------------
+id
+borrower_id
+book_id
+borrowed_at
+returned_at
+```
+
+A BookBorrow record represents a borrowing transaction.
+
+---
+
+# Assumptions
+
+The following assumptions were made because they were not explicitly specified:
+
+1. ISBN uniqueness
+
+   The requirement states that multiple copies with the same ISBN are allowed. Therefore, ISBN is not used as the database primary key.
+
+2. Book identity
+
+   Each physical copy of a book has its own unique ID.
+
+   Example:
+
+   ```
+   ID  ISBN          Title
+   1   1234567890    Clean Code
+   2   1234567890    Clean Code
+   ```
+
+   These represent two copies of the same book.
+
+3. Borrowing rules
+
+   A book copy cannot have more than one active borrowing record.
+
+4. Returning books
+
+   Returning a book updates the active borrowing record with a return date.
+
+5. Authentication
+
+   Authentication and authorization are not implemented because they were not part of the requirements.
+
+---
+
+# Error Handling
+
+The API returns structured error responses with HTTP status code.
+
+Example:
+
+```json
+{
+  "status": "ERROR",
+  "message": "Borrower email already exists"
+}
+```
+HTTP status codes used:404 Not Found, 409 Conflict, 400 Bad Request, 500 Internal Server Error
+---
+
+# Testing
+
+Unit tests are implemented using JUnit 5 and Mockito.
+
+The main business scenarios covered are:
+
+## Borrower Registration
+
+| Scenario                                    | Expected Result                  |
+| ------------------------------------------- | -------------------------------- |
+| Register borrower with valid name and email | Borrower is created successfully |
+| Register borrower with existing email       | Returns conflict error           |
+| Register borrower with missing name         | Returns validation error         |
+| Register borrower with invalid email format | Returns validation error         |
+
+---
+
+## Book Registration
+
+| Scenario                                         | Expected Result                                      |
+| ------------------------------------------------ | ---------------------------------------------------- |
+| Register book with valid ISBN, title, and author | Book is created successfully                         |
+| Register book with missing title                 | Returns validation error                             |
+| Register book with missing ISBN                  | Returns validation error                             |
+| Register multiple copies with same ISBN          | Multiple book records are created with different IDs |
+
+---
+
+## Borrowing a Book
+
+| Scenario                               | Expected Result                              |
+| -------------------------------------- | -------------------------------------------- |
+| Borrow an available book               | Creates a BookBorrow record successfully     |
+| Borrow a book that is already borrowed | Returns error indicating book is unavailable |
+| Borrow a non-existing book             | Returns not found error                      |
+| Borrow using a non-existing borrower   | Returns not found error                      |
+
+---
+
+## Returning a Book
+
+| Scenario                            | Expected Result                  |
+| ----------------------------------- | -------------------------------- |
+| Return an active borrowed book      | Updates return date successfully |
+| Return a book that was not borrowed | Returns error                    |
+| Return a non-existing book          | Returns not found error          |
+
+---
+
+## Data Integrity Tests
+
+| Scenario                                                | Expected Result                    |
+| ------------------------------------------------------- | ---------------------------------- |
+| Same ISBN with different titles/authors                 | Validation/business rule violation |
+| Same ISBN, title, and author                            | Multiple copies are allowed        |
+| Same book copy borrowed by two borrowers simultaneously | Second borrow request fails        |
+
+---
+
+Run tests using:
+
+```bash
+mvn test
+```
+
+
+---
+
+# Architecture
+
+The application follows a layered architecture based on Spring Boot best practices.
+
+```
+                    Client
+                      |
+                      |
+              REST API Controllers
+                      |
+                      |
+              Application Services
+                      |
+                      |
+              Repository Layer
+                      |
+                      |
+                PostgreSQL Database
+```
+
+## Components
+
+### Controller Layer
+
+Responsible for:
+
+* Exposing RESTful API endpoints.
+* Handling HTTP requests and responses.
+* Performing request validation.
+* Returning appropriate HTTP status codes.
+
+Examples:
+
+* BorrowerController
+* BookController
+* BookBorrowController
+
+### Service Layer
+
+Responsible for:
+
+* Implementing business logic.
+* Managing borrowing and returning rules.
+* Coordinating between entities and repositories.
+* Handling transactional operations.
+
+Examples:
+
+* BorrowerService
+* BookService
+* BookBorrowService
+
+### Repository Layer
+
+Responsible for:
+
+* Database communication.
+* CRUD operations using Spring Data JPA.
+* Querying borrower, book, and borrowing records.
+
+### Database Layer
+
+PostgreSQL stores:
+
+* Borrower information.
+* Book information.
+* Borrowing history.
+
+Entity relationships:
+
+```
+Borrower
+    |
+    | 1..*
+    |
+BookBorrow
+    |
+    | *..1
+    |
+Book
+```
+
+A `BookBorrow` entity is used to represent a borrowing transaction between a borrower and a book copy.
+
+---
+
+## Design Decisions
+
+### Why a layered monolithic architecture?
+
+The library system has a small and well-defined domain. A monolithic architecture provides:
+
+* Simpler deployment.
+* Easier maintenance.
+* Lower operational complexity.
+* Clear separation of responsibilities.
+
+The application can be evolved into separate services in the future if business requirements grow.
+
+---
+
+## Transaction Handling
+
+Borrowing and returning operations are executed within database transactions to maintain data consistency.
+
+Examples:
+
+* Preventing multiple active borrowers for the same book copy.
+* Updating borrowing status atomically when returning a book.
+
+---
+
+## Configuration Management
+
+The application supports multiple environments using Spring Profiles:
+
+* `dev` profile for local development.
+* `prod` profile for Docker/production-like execution.
+
+Database credentials are externalized using environment variables.
+
+
+# Future Improvements
+
+Possible enhancements:
+
+* Add authentication using JWT
+* Add pagination for books API
+* Add CI/CD pipeline
+* Deploy using Kubernetes
+* Add integration tests using Testcontainers
