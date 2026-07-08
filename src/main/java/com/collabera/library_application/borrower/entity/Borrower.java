@@ -1,11 +1,14 @@
-package com.collabera.library_application.entity;
+package com.collabera.library_application.borrower.entity;
+
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
-
+import com.collabera.library_application.entity.BaseEntity;
+import com.collabera.library_application.borrowing.entity.BookBorrow;
 import java.util.ArrayList;
 import java.util.List;
+
 
 @Entity
 @Table(name = "borrowers")
@@ -19,7 +22,7 @@ public class Borrower extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Schema(description = "Primary key", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
-    private Integer id;
+    private Long id;
 
     @Column(nullable = false, unique = true)
     @Schema(description = "borrower name", example = "afifa", required = true)

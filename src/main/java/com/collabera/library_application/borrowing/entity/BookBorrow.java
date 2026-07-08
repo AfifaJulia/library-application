@@ -1,5 +1,7 @@
-package com.collabera.library_application.entity;
+package com.collabera.library_application.borrowing.entity;
 
+import com.collabera.library_application.book.entity.Book;
+import com.collabera.library_application.borrower.entity.Borrower;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
