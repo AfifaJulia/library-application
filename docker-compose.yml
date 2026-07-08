@@ -1,0 +1,44 @@
+services:
+
+  postgres:
+    image: postgres:17
+
+    container_name: library-postgres
+
+    environment:
+      POSTGRES_DB: library_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  library-application:
+    build: .
+
+    container_name: library-application
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/library_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres123
+
+volumes:
+  postgres_data:
