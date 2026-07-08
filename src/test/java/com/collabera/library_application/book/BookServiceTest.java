@@ -39,9 +39,9 @@ public class BookServiceTest {
 
         BookRegistrationRequest request =
                 new BookRegistrationRequest(
+                        "9780132350884",
                         "Clean Code",
-                        "Robert C. Martin",
-                        "9780132350884"
+                        "Robert C. Martin"
                 );
 
         Book savedBook = Book.builder()
