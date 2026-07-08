@@ -345,6 +345,8 @@ Borrower
 id
 name
 email
+created_at
+updated_at
 ```
 
 ---
@@ -358,6 +360,8 @@ id
 isbn
 title
 author
+created_at
+updated_at
 ```
 
 ---
