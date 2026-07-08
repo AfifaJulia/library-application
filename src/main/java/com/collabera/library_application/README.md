@@ -622,6 +622,18 @@ The application supports multiple environments using Spring Profiles:
 
 Database credentials are externalized using environment variables.
 
+## API Testing with Postman
+
+The Postman collection is available here:
+
+`postman/book-library-api.postman_collection.json`
+
+### Import Instructions
+
+1. Open Postman
+2. Click Import
+3. Select the collection JSON file
+4. Run the API requests
 
 # Future Improvements
 
