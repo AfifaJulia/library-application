@@ -15,6 +15,7 @@ import com.collabera.library_application.exception.BookLibraryException;
 import com.collabera.library_application.book.repository.BookRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,22 +37,19 @@ public class BookBorrowServiceImpl implements BookBorrowService {
 
 
     @Override
+    @Transactional
     public BookBorrowResponse borrowBook(BookBorrowRequest request) {
 
-        //Before creating a new BookBorrow, check whether there is already an active borrow for the book
-        Optional<BookBorrow> activeBorrow = bookBorrowRepository.findByBookIdAndReturnedAtIsNull(request.bookId());
-
-        if (activeBorrow.isPresent()) {
-            throw new BookLibraryException(CustomErrors.BOOK_ALREADY_BORROWED);
-        }
-
-
         Book book = bookRepository.findById(request.bookId())
-                .orElseThrow(() ->  new BookLibraryException(CustomErrors.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new BookLibraryException(CustomErrors.BOOK_NOT_FOUND));
 
         Borrower borrower = borrowerRepository.findById(request.borrowerId())
                 .orElseThrow(() -> new BookLibraryException(CustomErrors.BORROWER_NOT_FOUND));
 
+        //Before creating a new BookBorrow, check whether there is already an active borrow for the book
+        if (bookBorrowRepository.existsByBookIdAndReturnedAtIsNull(book.getId())) {
+            throw new BookLibraryException(CustomErrors.BOOK_ALREADY_BORROWED);
+        }
 
         BookBorrow bookBorrow = BookBorrow.builder()
                 .book(book)
@@ -59,11 +57,28 @@ public class BookBorrowServiceImpl implements BookBorrowService {
                 .borrowedAt(LocalDateTime.now())
                 .build();
 
-        bookBorrowRepository.save(bookBorrow);
+        try {
 
-        log.info("Book {} borrowed successfully to {}", bookBorrow.getBook().getTitle(), bookBorrow.getBorrower().getName());
+            BookBorrow savedBorrow = bookBorrowRepository.save(bookBorrow);
 
-        return BookBorrowMapper.toResponse(bookBorrow);
+            log.info(
+                    "Book {} borrowed successfully to {}",
+                    savedBorrow.getBook().getTitle(),
+                    savedBorrow.getBorrower().getName()
+            );
+
+            return BookBorrowMapper.toResponse(savedBorrow);
+
+        } catch (DataIntegrityViolationException e) {
+
+            if (e.getMessage().contains("uk_active_book_borrow")) {
+                throw new BookLibraryException(
+                        CustomErrors.BOOK_ALREADY_BORROWED
+                );
+            }
+
+            throw e;
+        }
     }
 
     @Override

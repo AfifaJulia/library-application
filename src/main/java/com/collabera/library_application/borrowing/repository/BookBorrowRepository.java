@@ -12,5 +12,7 @@ public interface BookBorrowRepository extends JpaRepository<BookBorrow, Long> {
 
     Optional<BookBorrow> findByBookIdAndReturnedAtIsNull(Long bookId);
 
+    boolean existsByBookIdAndReturnedAtIsNull(Long bookId);
+
     List<BookBorrow> findByBorrowerId(Long borrowerId);
 }
