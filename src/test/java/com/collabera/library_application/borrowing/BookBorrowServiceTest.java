@@ -18,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,17 +73,18 @@ class BookBorrowServiceTest {
         BookBorrow bookBorrow = BookBorrow.builder()
                 .book(book)
                 .borrower(borrower)
+                .borrowedAt(LocalDateTime.now())
                 .build();
 
-
-        when(bookBorrowRepository.findByBookIdAndReturnedAtIsNull(1L))
-                .thenReturn(Optional.empty());
 
         when(bookRepository.findById(1L))
                 .thenReturn(Optional.of(book));
 
         when(borrowerRepository.findById(10L))
                 .thenReturn(Optional.of(borrower));
+
+        when(bookBorrowRepository.existsByBookIdAndReturnedAtIsNull(1L))
+                .thenReturn(false);
 
         when(bookBorrowRepository.save(any(BookBorrow.class)))
                 .thenReturn(bookBorrow);
@@ -96,9 +98,6 @@ class BookBorrowServiceTest {
                 .isNotNull();
 
 
-        verify(bookBorrowRepository)
-                .findByBookIdAndReturnedAtIsNull(1L);
-
         verify(bookRepository)
                 .findById(1L);
 
@@ -106,9 +105,11 @@ class BookBorrowServiceTest {
                 .findById(10L);
 
         verify(bookBorrowRepository)
+                .existsByBookIdAndReturnedAtIsNull(1L);
+
+        verify(bookBorrowRepository)
                 .save(any(BookBorrow.class));
     }
-
 
     @Test
     void shouldThrowException_whenBookAlreadyBorrowed() {
@@ -117,13 +118,29 @@ class BookBorrowServiceTest {
                 new BookBorrowRequest(1L, 10L);
 
 
-        BookBorrow existingBorrow =
-                BookBorrow.builder()
-                        .build();
+        Book book = Book.builder()
+                .id(1L)
+                .title("Clean Code")
+                .author("Robert C. Martin")
+                .isbn("9780132350884")
+                .build();
 
 
-        when(bookBorrowRepository.findByBookIdAndReturnedAtIsNull(1L))
-                .thenReturn(Optional.of(existingBorrow));
+        Borrower borrower = Borrower.builder()
+                .id(10L)
+                .name("John")
+                .email("john@gmail.com")
+                .build();
+
+
+        when(bookRepository.findById(1L))
+                .thenReturn(Optional.of(book));
+
+        when(borrowerRepository.findById(10L))
+                .thenReturn(Optional.of(borrower));
+
+        when(bookBorrowRepository.existsByBookIdAndReturnedAtIsNull(1L))
+                .thenReturn(true);
 
 
         BookLibraryException exception =
@@ -139,11 +156,17 @@ class BookBorrowServiceTest {
                 );
 
 
-        verify(bookRepository, never())
-                .findById(anyLong());
+        verify(bookRepository)
+                .findById(1L);
 
-        verify(borrowerRepository, never())
-                .findById(anyLong());
+        verify(borrowerRepository)
+                .findById(10L);
+
+        verify(bookBorrowRepository)
+                .existsByBookIdAndReturnedAtIsNull(1L);
+
+        verify(bookBorrowRepository, never())
+                .save(any(BookBorrow.class));
     }
 
 
