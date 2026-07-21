@@ -49,7 +49,8 @@ PostgreSQL was selected because:
     * BookBorrow
 * Relational databases provide strong consistency for borrowing operations.
 * Foreign key constraints ensure data integrity.
-* Unique constraints can enforce ISBN rules.
+* Unique constraints can enforce business rules such as preventing duplicate active borrowing records.
+* PostgreSQL partial indexes provide an efficient way to enforce conditional uniqueness rules.
 * PostgreSQL is widely used in production environments and has excellent Spring Boot support.
 
 ---
@@ -296,8 +297,10 @@ Request:
 
 Rules:
 
-* A book copy can only be borrowed by one borrower at a time.
+* A book copy can only have one active borrowing record at a time.
+* An active borrowing record is identified by `returned_at IS NULL`.
 * Multiple copies with the same ISBN are supported.
+* A returned book can be borrowed again, creating a new borrowing transaction.
 
 ---
 
@@ -330,7 +333,7 @@ Example:
 * Title is mandatory.
 * Author is mandatory.
 * ISBN is mandatory.
-* Multiple books can have the same ISBN.
+* ISBN uniqueness is not enforced because multiple physical copies of the same edition are supported.
 * Different ISBN values represent different book editions.
 
 ---
@@ -380,7 +383,35 @@ returned_at
 
 A BookBorrow record represents a borrowing transaction.
 
+## Active Borrow Constraint
+
+To prevent the same book copy from being borrowed by multiple borrowers at the same time, PostgreSQL enforces a partial unique index:
+
+```sql
+CREATE UNIQUE INDEX uk_active_book_borrow
+ON book_borrows(book_id)
+WHERE returned_at IS NULL;
+```
+
+Example:
+
+```
+Allowed: 
+
+book_id | returned_at
+--------|------------
+1       | 2026-07-01
+1       | 2026-07-15
+1       | NULL
 ---
+
+Not Allowed: 
+book_id | returned_at
+--------|------------
+1       | NULL
+1       | NULL
+
+```
 
 # Assumptions
 
@@ -407,6 +438,10 @@ The following assumptions were made because they were not explicitly specified:
 3. Borrowing rules
 
    A book copy cannot have more than one active borrowing record.
+   This rule is enforced at two levels:
+
+    - Application level: The service checks whether an active borrowing record exists.
+    - Database level: PostgreSQL partial unique index prevents duplicate active borrowing records during concurrent requests.
 
 4. Returning books
 
@@ -463,12 +498,12 @@ The main business scenarios covered are:
 
 ## Borrowing a Book
 
-| Scenario                               | Expected Result                              |
-| -------------------------------------- | -------------------------------------------- |
-| Borrow an available book               | Creates a BookBorrow record successfully     |
-| Borrow a book that is already borrowed | Returns error indicating book is unavailable |
-| Borrow a non-existing book             | Returns not found error                      |
-| Borrow using a non-existing borrower   | Returns not found error                      |
+| Scenario                               | Expected Result                                |
+| -------------------------------------- |------------------------------------------------|
+| Borrow an available book               | Creates a BookBorrow record successfully       |
+| Borrow a book that is already borrowed | Returns `BOOK_ALREADY_BORROWED` conflict error |
+| Borrow a non-existing book             | Returns not found error                        |
+| Borrow using a non-existing borrower   | Returns not found error                        |
 
 ---
 
@@ -561,7 +596,14 @@ Responsible for:
 * CRUD operations using Spring Data JPA.
 * Querying borrower, book, and borrowing records.
 
-### Database Layer
+The borrowing repository provides optimized existence checks:
+
+```java
+existsByBookIdAndReturnedAtIsNull(Long bookId)
+```
+
+
+## Database Layer
 
 PostgreSQL stores:
 
@@ -604,12 +646,29 @@ The application can be evolved into separate services in the future if business 
 
 ## Transaction Handling
 
-Borrowing and returning operations are executed within database transactions to maintain data consistency.
+Borrowing and returning operations are executed within database transactions to maintain data consistency database transactions using Spring's `@Transactional`
 
-Examples:
+### Borrowing transaction flow:
 
-* Preventing multiple active borrowers for the same book copy.
-* Updating borrowing status atomically when returning a book.
+1. Validate that the book exists.
+2. Validate that the borrower exists.
+3. Check whether the book has an active borrowing record.
+4. Create a new borrowing transaction.
+
+If any operation fails, the transaction is rolled back.
+
+### Concurrency Handling
+
+The application uses a two-layer approach:
+
+1. Application-level validation:
+    - Checks availability before creating a borrow record.
+    - Provides meaningful business errors.
+
+2. Database-level protection:
+    - PostgreSQL partial unique index prevents multiple active borrowing records for the same book copy.
+
+This ensures data consistency even when multiple users attempt to borrow the same book simultaneously.
 
 ---
 
