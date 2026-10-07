@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 @Schema(description = "Request object for registering a borrower")
 public record BorrowerRegistrationRequest(
 
-    @NotBlank//(message = "Borrower name is required")
+    @NotBlank(message = "Borrower name is required")
     String name,
 
     @NotBlank(message = "Borrower email is required")
