@@ -43,7 +43,7 @@ public class BorrowerController {
     })
     public ResponseEntity<BorrowerResponse> registerNewBorrower(@Valid @RequestBody BorrowerRegistrationRequest registerRequest) {
 
-        return ResponseEntity.status(HttpStatus.OK)
+        return ResponseEntity.status(HttpStatus.CREATED)
                 .body(borrowerService.registerBorrower(registerRequest));
     }
 }

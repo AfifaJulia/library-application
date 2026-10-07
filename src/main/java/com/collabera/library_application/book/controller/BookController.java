@@ -46,7 +46,7 @@ public class BookController {
     @PostMapping
     public ResponseEntity<BookResponse> registerNewBook(@Valid @RequestBody BookRegistrationRequest registerRequest) {
 
-        return ResponseEntity.status(HttpStatus.OK)
+        return ResponseEntity.status(HttpStatus.CREATED)
                 .body(bookService.registerBook(registerRequest));
     }
 
