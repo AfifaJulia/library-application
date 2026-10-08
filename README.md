@@ -544,8 +544,17 @@ The main business scenarios covered are:
 Run tests using:
 
 ```bash
-mvn test
+./mvnw test
 ```
+
+JaCoCo measures test coverage during verification. Generate the coverage report with:
+
+```bash
+./mvnw clean verify
+```
+
+On Windows, use `.\mvnw.cmd clean verify`. Open `target/site/jacoco/index.html`
+in a browser to view the report.
 
 ## Continuous Integration
 
