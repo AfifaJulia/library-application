@@ -59,7 +59,7 @@ public class BookBorrowServiceImpl implements BookBorrowService {
 
         try {
 
-            BookBorrow savedBorrow = bookBorrowRepository.save(bookBorrow);
+            BookBorrow savedBorrow = bookBorrowRepository.saveAndFlush(bookBorrow);//save() may defer SQL execution
 
             log.info(
                     "Book {} borrowed successfully to {}",
