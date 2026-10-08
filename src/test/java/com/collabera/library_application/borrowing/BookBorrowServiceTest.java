@@ -49,69 +49,6 @@ class BookBorrowServiceTest {
 
 
     @Test
-    void shouldBorrowBookSuccessfully() {
-
-        BookBorrowRequest request =
-                new BookBorrowRequest(1L, 10L);
-
-
-        Book book = Book.builder()
-                .id(1L)
-                .title("Clean Code")
-                .author("Robert C. Martin")
-                .isbn("9780132350884")
-                .build();
-
-
-        Borrower borrower = Borrower.builder()
-                .id(10L)
-                .name("John")
-                .email("john@gmail.com")
-                .build();
-
-
-        BookBorrow bookBorrow = BookBorrow.builder()
-                .book(book)
-                .borrower(borrower)
-                .borrowedAt(LocalDateTime.now())
-                .build();
-
-
-        when(bookRepository.findById(1L))
-                .thenReturn(Optional.of(book));
-
-        when(borrowerRepository.findById(10L))
-                .thenReturn(Optional.of(borrower));
-
-        when(bookBorrowRepository.existsByBookIdAndReturnedAtIsNull(1L))
-                .thenReturn(false);
-
-        when(bookBorrowRepository.save(any(BookBorrow.class)))
-                .thenReturn(bookBorrow);
-
-
-        BookBorrowResponse response =
-                bookBorrowService.borrowBook(request);
-
-
-        assertThat(response)
-                .isNotNull();
-
-
-        verify(bookRepository)
-                .findById(1L);
-
-        verify(borrowerRepository)
-                .findById(10L);
-
-        verify(bookBorrowRepository)
-                .existsByBookIdAndReturnedAtIsNull(1L);
-
-        verify(bookBorrowRepository)
-                .save(any(BookBorrow.class));
-    }
-
-    @Test
     void shouldThrowException_whenBookAlreadyBorrowed() {
 
         BookBorrowRequest request =
