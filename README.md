@@ -547,6 +547,14 @@ Run tests using:
 mvn test
 ```
 
+## Continuous Integration
+
+The GitHub Actions workflow in `.github/workflows/ci.yml` runs on pushes and
+pull requests. It starts a temporary PostgreSQL 17 service, runs
+`./mvnw --batch-mode verify`, and builds the Docker image. The workflow uses a
+disposable test-only database password; it does not publish the image or deploy
+the application.
+
 
 ---
 
