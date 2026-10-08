@@ -102,10 +102,14 @@ spring.datasource.url=jdbc:postgresql://localhost:5433/library_db
 spring.datasource.username=postgres
 spring.datasource.password=postgres123
 
-spring.jpa.hibernate.ddl-auto=update
+spring.jpa.hibernate.ddl-auto=validate
 ```
 
-Start the application:
+Flyway creates the tables and indexes from the versioned migrations during
+application startup. Hibernate validates that the database matches the entity
+mappings; it does not create or update the schema.
+
+Start the application after PostgreSQL is available:
 
 ```bash
 mvn spring-boot:run
@@ -129,10 +133,20 @@ The Docker setup starts:
 Build and start:
 
 ```bash
+# Copy .env.example to .env, then set a unique local database password in .env.
+# PowerShell: Copy-Item .env.example .env
+# macOS/Linux: cp .env.example .env
 mvn clean package
 
 docker compose up --build
 ```
+
+Docker Compose reads the database settings from `.env`. Keep `.env` local and
+never commit it; only `.env.example` with placeholder values belongs in Git.
+These values are for local development, not production secrets. PostgreSQL only
+uses the configured credentials when it initializes an empty data volume. If
+you change them after the volume has been initialized, the database credentials
+must be changed separately or the existing volume recreated.
 
 The API will be available at:
 

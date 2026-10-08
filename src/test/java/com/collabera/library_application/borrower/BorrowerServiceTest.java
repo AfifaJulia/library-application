@@ -12,7 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -82,28 +83,31 @@ class BorrowerServiceImplTest {
     @Test
     void shouldAllowBorrowersWithSameNameAndDifferentEmails() {
 
-        BorrowerRegistrationRequest request =
-                new BorrowerRegistrationRequest(
-                        "John Smith",
-                        "jane@gmail.com"
-                );
+        BorrowerRegistrationRequest firstRequest =
+                new BorrowerRegistrationRequest("John Smith", "john@gmail.com");
+        BorrowerRegistrationRequest secondRequest =
+                new BorrowerRegistrationRequest("John Smith", "jane@gmail.com");
+        AtomicLong idSequence = new AtomicLong();
 
-        Borrower savedBorrower = Borrower.builder()
-                .id(2L)
-                .name(request.name())
-                .email(request.email())
-                .build();
-
-        when(borrowerRepository.existsByEmailIgnoreCase(request.email()))
+        when(borrowerRepository.existsByEmailIgnoreCase(anyString()))
                 .thenReturn(false);
         when(borrowerRepository.save(any(Borrower.class)))
-                .thenReturn(savedBorrower);
+                .thenAnswer(invocation -> {
+                    Borrower borrower = invocation.getArgument(0);
+                    borrower.setId(idSequence.incrementAndGet());
+                    return borrower;
+                });
 
-        BorrowerResponse response = borrowerService.registerBorrower(request);
+        BorrowerResponse firstResponse = borrowerService.registerBorrower(firstRequest);
+        BorrowerResponse secondResponse = borrowerService.registerBorrower(secondRequest);
 
-        assertThat(response.name()).isEqualTo("John Smith");
-        assertThat(response.email()).isEqualTo("jane@gmail.com");
-        verify(borrowerRepository).save(any(Borrower.class));
+        assertThat(firstResponse.name()).isEqualTo(secondResponse.name());
+        assertThat(firstResponse.email()).isEqualTo("john@gmail.com");
+        assertThat(secondResponse.email()).isEqualTo("jane@gmail.com");
+        assertThat(firstResponse.id()).isNotEqualTo(secondResponse.id());
+        verify(borrowerRepository).existsByEmailIgnoreCase("john@gmail.com");
+        verify(borrowerRepository).existsByEmailIgnoreCase("jane@gmail.com");
+        verify(borrowerRepository, times(2)).save(any(Borrower.class));
     }
 
     @Test
@@ -164,19 +168,4 @@ class BorrowerServiceImplTest {
                 borrower.getEmail().equals("john@gmail.com")));
     }
 
-    @Test
-    @Transactional
-    void allowsDifferentBorrowersWithTheSameName() {
-        String sharedName = "Same Name";
-        Borrower first = borrowerRepository.save(Borrower.builder()
-                .name(sharedName)
-                .email("first-" + java.util.UUID.randomUUID() + "@example.com")
-                .build());
-        Borrower second = borrowerRepository.save(Borrower.builder()
-                .name(sharedName)
-                .email("second-" + java.util.UUID.randomUUID() + "@example.com")
-                .build());
-
-        assertThat(first.getId()).isNotEqualTo(second.getId());
-    }
 }
