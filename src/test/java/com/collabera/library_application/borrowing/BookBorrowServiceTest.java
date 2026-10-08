@@ -268,6 +268,8 @@ class BookBorrowServiceTest {
                         .borrower(borrower)
                         .build();
 
+        when(bookRepository.existsById(1L))
+                .thenReturn(true);
 
         when(bookBorrowRepository.findByBookIdAndReturnedAtIsNull(1L))
                 .thenReturn(Optional.of(activeBorrow));
@@ -283,6 +285,8 @@ class BookBorrowServiceTest {
         assertThat(activeBorrow.getReturnedAt())
                 .isNotNull();
 
+        verify(bookRepository)
+                .existsById(1L);
 
         verify(bookBorrowRepository)
                 .findByBookIdAndReturnedAtIsNull(1L);
@@ -295,6 +299,8 @@ class BookBorrowServiceTest {
         BookReturnRequest request =
                 new BookReturnRequest(1L);
 
+        when(bookRepository.existsById(1L))
+                .thenReturn(true);
 
         when(bookBorrowRepository.findByBookIdAndReturnedAtIsNull(1L))
                 .thenReturn(Optional.empty());
@@ -311,5 +317,28 @@ class BookBorrowServiceTest {
                 .isEqualTo(
                         CustomErrors.BOOK_NOT_BORROWED.getErrorMessage()
                 );
+
+        verify(bookRepository)
+                .existsById(1L);
+        verify(bookBorrowRepository)
+                .findByBookIdAndReturnedAtIsNull(1L);
+    }
+
+    @Test
+    void shouldThrowException_whenReturningNonexistentBook() {
+        BookReturnRequest request = new BookReturnRequest(999L);
+
+        when(bookRepository.existsById(999L))
+                .thenReturn(false);
+
+        BookLibraryException exception = assertThrows(
+                BookLibraryException.class,
+                () -> bookBorrowService.returnBook(request)
+        );
+
+        assertThat(exception.getMessage())
+                .isEqualTo(CustomErrors.BOOK_NOT_FOUND.getErrorMessage());
+        verify(bookBorrowRepository, never())
+                .findByBookIdAndReturnedAtIsNull(999L);
     }
 }

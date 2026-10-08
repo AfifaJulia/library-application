@@ -84,6 +84,10 @@ public class BookBorrowServiceImpl implements BookBorrowService {
     @Override
     @Transactional
     public BookBorrowResponse returnBook(BookReturnRequest request) {
+        if (!bookRepository.existsById(request.bookId())) {
+            throw new BookLibraryException(CustomErrors.BOOK_NOT_FOUND);
+        }
+
         //Find the active borrow for the book
         Optional<BookBorrow> activeBorrow = bookBorrowRepository.findByBookIdAndReturnedAtIsNull(request.bookId());
 
