@@ -100,7 +100,7 @@ Example:
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5433/library_db
 spring.datasource.username=postgres
-spring.datasource.password=
+spring.datasource.password=postgres123
 
 spring.jpa.hibernate.ddl-auto=update
 ```

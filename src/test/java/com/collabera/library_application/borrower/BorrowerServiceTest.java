@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -49,10 +50,7 @@ class BorrowerServiceImplTest {
                 .build();
 
 
-        when(borrowerRepository.existsByName(request.name()))
-                .thenReturn(false);
-
-        when(borrowerRepository.existsByEmail(request.email()))
+        when(borrowerRepository.existsByEmailIgnoreCase(request.email()))
                 .thenReturn(false);
 
         when(borrowerRepository.save(any(Borrower.class)))
@@ -74,10 +72,7 @@ class BorrowerServiceImplTest {
 
 
         verify(borrowerRepository)
-                .existsByName(request.name());
-
-        verify(borrowerRepository)
-                .existsByEmail(request.email());
+                .existsByEmailIgnoreCase(request.email());
 
         verify(borrowerRepository)
                 .save(any(Borrower.class));
@@ -85,42 +80,31 @@ class BorrowerServiceImplTest {
 
 
     @Test
-    void shouldThrowException_whenBorrowerNameAlreadyExists() {
+    void shouldAllowBorrowersWithSameNameAndDifferentEmails() {
 
         BorrowerRegistrationRequest request =
                 new BorrowerRegistrationRequest(
                         "John Smith",
-                        "john@gmail.com"
+                        "jane@gmail.com"
                 );
 
+        Borrower savedBorrower = Borrower.builder()
+                .id(2L)
+                .name(request.name())
+                .email(request.email())
+                .build();
 
-        when(borrowerRepository.existsByName(request.name()))
-                .thenReturn(true);
+        when(borrowerRepository.existsByEmailIgnoreCase(request.email()))
+                .thenReturn(false);
+        when(borrowerRepository.save(any(Borrower.class)))
+                .thenReturn(savedBorrower);
 
+        BorrowerResponse response = borrowerService.registerBorrower(request);
 
-        BookLibraryException exception =
-                assertThrows(
-                        BookLibraryException.class,
-                        () -> borrowerService.registerBorrower(request)
-                );
-
-
-        assertThat(exception.getMessage())
-                .isEqualTo(
-                        CustomErrors.BORROWER_NAME_ALREADY_EXISTS.getErrorMessage()
-                );
-
-
-        verify(borrowerRepository)
-                .existsByName(request.name());
-
-        verify(borrowerRepository, never())
-                .existsByEmail(anyString());
-
-        verify(borrowerRepository, never())
-                .save(any(Borrower.class));
+        assertThat(response.name()).isEqualTo("John Smith");
+        assertThat(response.email()).isEqualTo("jane@gmail.com");
+        verify(borrowerRepository).save(any(Borrower.class));
     }
-
 
     @Test
     void shouldThrowException_whenBorrowerEmailAlreadyExists() {
@@ -128,14 +112,11 @@ class BorrowerServiceImplTest {
         BorrowerRegistrationRequest request =
                 new BorrowerRegistrationRequest(
                         "John Smith",
-                        "john@gmail.com"
+                        "  JOHN@GMAIL.COM  "
                 );
 
 
-        when(borrowerRepository.existsByName(request.name()))
-                .thenReturn(false);
-
-        when(borrowerRepository.existsByEmail(request.email()))
+        when(borrowerRepository.existsByEmailIgnoreCase("john@gmail.com"))
                 .thenReturn(true);
 
 
@@ -153,12 +134,49 @@ class BorrowerServiceImplTest {
 
 
         verify(borrowerRepository)
-                .existsByName(request.name());
-
-        verify(borrowerRepository)
-                .existsByEmail(request.email());
+                .existsByEmailIgnoreCase("john@gmail.com");
 
         verify(borrowerRepository, never())
                 .save(any(Borrower.class));
+    }
+
+    @Test
+    void shouldNormalizeEmailBeforeCheckingAndSaving() {
+        BorrowerRegistrationRequest request =
+                new BorrowerRegistrationRequest("John Smith", "  JOHN@GMAIL.COM  ");
+
+        Borrower savedBorrower = Borrower.builder()
+                .id(3L)
+                .name(request.name())
+                .email("john@gmail.com")
+                .build();
+
+        when(borrowerRepository.existsByEmailIgnoreCase("john@gmail.com"))
+                .thenReturn(false);
+        when(borrowerRepository.save(any(Borrower.class)))
+                .thenReturn(savedBorrower);
+
+        BorrowerResponse response = borrowerService.registerBorrower(request);
+
+        assertThat(response.email()).isEqualTo("john@gmail.com");
+        verify(borrowerRepository).existsByEmailIgnoreCase("john@gmail.com");
+        verify(borrowerRepository).save(argThat(borrower ->
+                borrower.getEmail().equals("john@gmail.com")));
+    }
+
+    @Test
+    @Transactional
+    void allowsDifferentBorrowersWithTheSameName() {
+        String sharedName = "Same Name";
+        Borrower first = borrowerRepository.save(Borrower.builder()
+                .name(sharedName)
+                .email("first-" + java.util.UUID.randomUUID() + "@example.com")
+                .build());
+        Borrower second = borrowerRepository.save(Borrower.builder()
+                .name(sharedName)
+                .email("second-" + java.util.UUID.randomUUID() + "@example.com")
+                .build());
+
+        assertThat(first.getId()).isNotEqualTo(second.getId());
     }
 }

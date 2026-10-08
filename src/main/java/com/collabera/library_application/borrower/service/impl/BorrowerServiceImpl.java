@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.Locale;
 
 @Service
 @Slf4j
@@ -28,20 +28,15 @@ public class BorrowerServiceImpl implements BorrowerService {
     public BorrowerResponse registerBorrower(BorrowerRegistrationRequest request) {
         log.info("New Book Borrower Registration: {}", request);
 
-        // 1. Check name
-        if (borrowerRepository.existsByName(request.name())) {
-            throw new BookLibraryException(CustomErrors.BORROWER_NAME_ALREADY_EXISTS);
-        }
-
-        // 2. Check email
-        if (borrowerRepository.existsByEmail(request.email())) {
+        String normalizedEmail = request.email().trim().toLowerCase(Locale.ROOT);
+        if (borrowerRepository.existsByEmailIgnoreCase(normalizedEmail)) {
             throw new BookLibraryException(CustomErrors.BORROWER_EMAIL_ALREADY_EXISTS);
         }
 
         // Create and save the new borrower
         Borrower borrower = Borrower.builder()
                 .name(request.name())
-                .email(request.email())
+                .email(normalizedEmail)
                 .build();
         borrower = borrowerRepository.save(borrower);
 

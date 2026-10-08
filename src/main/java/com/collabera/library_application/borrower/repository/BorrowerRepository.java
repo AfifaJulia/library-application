@@ -7,6 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BorrowerRepository extends JpaRepository<Borrower, Long> {
 
-    boolean existsByName(String borrowerName);
-    boolean existsByEmail(String borrowerEmail);
+    boolean existsByEmailIgnoreCase(String borrowerEmail);
 }

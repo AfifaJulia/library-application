@@ -4,7 +4,6 @@ package com.collabera.library_application.enums;
 import org.springframework.http.HttpStatus;
 
 public enum CustomErrors {
-    BORROWER_NAME_ALREADY_EXISTS("Borrower name already exists",  HttpStatus.CONFLICT),
     BORROWER_EMAIL_ALREADY_EXISTS("Borrower email already exists", HttpStatus.CONFLICT),
     ISBN_ALREADY_EXISTS_WITH_DIFFERENT_TITLE_OR_AUTHOR("ISBN already exists with different title or author. Please check the details and try again.", HttpStatus.CONFLICT),
     BOOK_NOT_FOUND("Book not found", HttpStatus.NOT_FOUND),
@@ -28,4 +27,3 @@ public enum CustomErrors {
         return httpStatus;
     }
 }
-

@@ -39,7 +39,7 @@ public class BookController {
             required = true
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Book registered successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Book registered successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request parameters"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Internal server error")
     })

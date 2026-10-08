@@ -24,7 +24,7 @@ public class Borrower extends BaseEntity {
     @Schema(description = "Primary key", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     @Schema(description = "borrower name", example = "afifa", required = true)
     private String name;
 
