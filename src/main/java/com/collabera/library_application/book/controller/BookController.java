@@ -51,10 +51,6 @@ public class BookController {
             summary = "Get All Books",
             description = "Retrieves a list of all books in the library application"
     )
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "Request body containing the details of the book to be registered",
-            required = true
-    )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Books retrieved successfully"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Internal server error")
